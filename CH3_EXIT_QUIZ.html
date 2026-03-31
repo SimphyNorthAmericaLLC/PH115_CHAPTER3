@@ -1,0 +1,229 @@
+<div id="quiz2" style="max-width:760px;font-family:system-ui, sans-serif;line-height:1.45">
+  <h3 id="q2_progress"></h3>
+  <div id="q2_stem" style="margin:.5rem 0 1rem"></div>
+  <div id="q2_options"></div>
+  <div id="q2_feedback" style="margin-top:.75rem"></div>
+  <button id="q2_restart" style="display:none;margin-top:1rem">Restart</button>
+</div>
+
+<script>
+(() => {
+  // Same engine, new dataset
+  const QUESTIONS = [
+    {
+      original: "Think of a capacitor of some capacitance C. The capacitor holds charge Q1. The same capacitor is then charged to 2Q1. What is the new capacitance? a) C b) C/2 c) 2C d) none of these",
+      choices: ["C","C/2","2C","none of these"],
+      correctIndex: 0
+    },
+    {
+      original: "The current in a charging RC circuit in series will be _____ when the capacitor is fully charged: a) exactly zero b) almost zero c) maximum d) almost maximum",
+      choices: ["exactly zero","almost zero","maximum","almost maximum"],
+      correctIndex: 1
+    },
+    {
+      original: "Capacitance depends on: a) Geometry of the capacitor and dielectric b) Geometry of the capacitor only c) Dielectric only d) the voltage connected",
+      choices: ["Geometry of the capacitor and dielectric","Geometry of the capacitor only","Dielectric only","the voltage connected"],
+      correctIndex: 0
+    },
+    {
+      original: "An empty capacitor is connected to a resistor and a DC source in series. When the switch closes and the charging starts, the potential across the resistor is: a)zero b) minimum c) maximum d) none of these apply",
+      choices: ["zero","minimum","maximum","none of these apply"],
+      correctIndex: 2
+    },
+    {
+      original: "An empty capacitor is connected directly to the DC source in series without the presence of a resistor.  When the cap is fully charged, then the current in the circuit is: a)zero b) minimum c) maximum d) no such circuit exists",
+      choices: ["zero","minimum","maximum","no such circuit exists"],
+      correctIndex: 3
+    },
+    {
+      original: "An empty capacitor is connected directly to the DC source in series with a resistor of resistance R. The energy lost to the resistor is always: a) dependent on the resistor b) dependent on the capacitor c) zero d) none of these apply",
+      choices: ["dependent on the resistor","dependent on the capacitor","zero","none of these apply"],
+      correctIndex: 1
+    },
+    {
+      original: "Two air-filled parallel plate capacitors in series that have the same charge area density and same plate\nseparation will always have the same: a) Charge b) Voltage c) Capacitance d) All of these",
+      choices: ["Charge","Voltage","Capacitance","All of these"],
+      correctIndex: 3
+    },
+    {
+      original: "Two air-filled parallel plate capacitors in series that are being charged will always have the same: a) Energy b) Potential c) All of these d) More info required",
+      choices: ["Energy","Potential","All of these","More info required"],
+      correctIndex: 3
+    },
+    {
+      original: "In a DC RC charging scenario, when the capacitor was just beginning to charge, the current in the circuit was: a) maximum b) minimum but not zero c) Zero",
+      choices: ["maximum","minimum but not zero","Zero"],
+      correctIndex: 0
+    },
+    {
+      original: "The speed of a capacitor discharging in a DC circuit depends on: a) Resistance and capacitance  b) Capacitance only  c) Resistance only d) None of these",
+      choices: ["Resistance and capacitance","Capacitance only","Resistance only","None of these"],
+      correctIndex: 0
+    },
+    {
+      original: "The presence of a dielectric leads to:  a) Increased capacitance  b) Decreased capacitance  c) Increased capacitor potential  d) Increased capacitor’s electric field  e) None of these",
+      choices: ["Increased capacitance","Decreased capacitance","Increased capacitor potential","Increased capacitor’s electric field","None of these"],
+      correctIndex: 0
+    },
+    {
+      original: "During a capacitor’s discharge through a resistor, a) Energy is lost, but not charge. b) Charge is lost but not energy.  c) No energy nor charge is lost.  d) Both energy and charge are lost.",
+      choices: ["Energy is lost, but not charge.","Charge is lost but not energy.","No energy nor charge is lost.","Both energy and charge are lost."],
+      correctIndex: 0
+    },
+    {
+      original: "A isolated capacitor C=1 F carries initially a charge Q=1 C and discharges to an identical capacitor which is also connected in series to a resistor R.  The steady-state charge is expected to split 0.5 C on each capacitor. What is the percentage of energy lost through the resistor? a) 50% b) 100% c) 25% d) 0% e) None of these values",
+      choices: ["50%","100%","25%","0%","None of these values"],
+      correctIndex: 0
+    },
+    {
+      original: "A capacitor is initially charged. The cap is then connected in series via a switch to another uncharged capacitor of the same capacitance and a resistor. The switch closes. Does the energy lost through the resistor depend on the resistor value? a) No b) Yes c) It depends if a ground is present",
+      choices: ["No","Yes","It depends if a ground is present"],
+      correctIndex: 0
+    },
+    {
+      original: "A capacitor with capacitance C is charged with charge Q. It is then connected to a resistor R. The charge lost through the resistor is: a) Zero b) Depends on the resistor c) Depends on the initial charge on the capacitor d) Depends on the initial charge on the capacitor and the resistor e) None of these apply",
+      choices: ["Zero","Depends on the resistor","Depends on the initial charge on the capacitor","Depends on the initial charge on the capacitor and the resistor","None of these apply"],
+      correctIndex: 0
+    },
+    {
+      original: "Capacitor A has twice the plate area of capacitor B, but no information is given about the plate distance. When A is charged at 2 V, the charge is 2 C, and when B is charged at 3 V, the charge is 3 C. We can deduce that the two capacitances C_A and C_B are: a) C_A=C_B b) C_A>C_B c) C_A<C_B d) More information is required",
+      choices: ["C_A=C_B","C_A>C_B","C_A<C_B","More information is required"],
+      correctIndex: 0
+    },
+    {
+      original: "When a capacitor is charging through a DC source, the net charge added in the circuit is: a) dependent on the DC source b) dependent on the resistor c) dependent on the capacitor d) zero",
+      choices: ["dependent on the DC source","dependent on the resistor","dependent on the capacitor","zero"],
+      correctIndex: 3
+    },
+    {
+      original: "When a capacitor is discharging, the net charge change in the circuit will be: a) become zero b) remain zero c) decay with time d) none of these apply",
+      choices: ["become zero","remain zero","decay with time","none of these apply"],
+      correctIndex: 1
+    },
+    {
+      original: "We insert a dielectric to an isolated charged capacitor (no longer plugged into power). This leads to: a) more stored charge b) less stored charge c) higher potential d) lower potential",
+      choices: ["more stored charge","less stored charge","higher potential","lower potential"],
+      correctIndex: 3
+    },
+    {
+      original: "We insert a dielectric to a charged capacitor that is connected to a DC source. This leads to: a) more stored charge b) less stored charge c) no difference in the stored charge",
+      choices: ["more stored charge","less stored charge","no difference in the stored charge"],
+      correctIndex: 0
+    },
+    {
+      original: "The current in an AC RC circuit in series will always be at _____ degrees phase difference with the resistor's potential. a) 0° b) 90° c) 180 ° d) depends on the resistor and the capacitor.",
+      choices: ["0°","90°","180 °","depends on the resistor and the capacitor."],
+      correctIndex: 0
+    },
+    {
+      original: "The current in an AC RC circuit in series and the voltage across the entire circuit will always be at _____ degrees phase difference with the resistor. a) 0° b) 90° c) 180 ° d) depends on the resistor and the capacitor.",
+      choices: ["0°","90°","180 °","depends on the resistor and the capacitor."],
+      correctIndex: 3
+    },
+    {
+      original: "The potential across the resistor and the capacitor in an AC circuit in series will always be at _____ degrees phase difference. a) 0° b) 90° c) 180 ° d) depends on the resistor and the capacitor.",
+      choices: ["0°","90°","180 °","depends on the resistor and the capacitor."],
+      correctIndex: 1
+    },
+    {
+      original: "One of the major differences between DC and AC (sine-wave) that occurs when the circuit includes a capacitor is that a) the capacitor has resistance, but it is dependent on frequency b) the capacitance depends on frequency c) the capacitor has resistance, but it is independent of frequency d) none of these are on the list.",
+      choices: ["the capacitor has resistance, but it is dependent on frequency","the capacitance depends on frequency","the capacitor has resistance, but it is independent of frequency","none of these are on the list."],
+      correctIndex: 0
+    },
+    {
+      original: "As the AC source frequency increases in an RC in series, the maximum voltage across the resistor a) approaches the maximum of the source, b) approaches zero, c) approaches the RMS of the capacitor, d) none of these on the list.",
+      choices: ["approaches the maximum of the source","approaches zero","approaches the RMS of the capacitor","none of these on the list."],
+      correctIndex: 0
+    },
+    {
+      original: "The speed of a capacitor discharging in an AC circuit depends on a) Resistance and capacitance only. Capacitance only b) Capacitance only. c) Resistance only. d) None of these.",
+      choices: ["Resistance and capacitance only","Capacitance only","Resistance only","None of these"],
+      correctIndex: 3
+    },
+    {
+      original: "Capacitors can be used as digital filters.   a) Only in AC.  b) Only in DC.  c) Both in AC and DC.",
+      choices: ["Only in AC.","Only in DC.","Both in AC and DC."],
+      correctIndex: 0
+    },
+    {
+      original: "An RC connected to an AC source at some given time has a potential across the capacitor of 0.5 V and a potential across the resistor (in series) of 0.7 V. This means that the voltage of the source at that same time is   a) 0.86 V,  b) 1.2 V,  c) Zero, d) None of these values.",
+      choices: ["0.86 V","1.2 V","Zero","None of these values"],
+      correctIndex: 1
+    },
+    {
+      original: "Reactive capacitance  is only a property of geometry and dielectric. This statement is a) false,  b) True, c) More information is required.",
+      choices: ["false","True","More information is required"],
+      correctIndex: 0
+    }
+  ];
+
+  const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+
+  function stemFrom(original){
+    const i = original.indexOf("a)");
+    return (i === -1) ? original : original.slice(0, i).replace(/[ ;:,.]+$/,"");
+  }
+
+  function runQuiz(){
+    let index = 0, score = 0;
+    const progress = document.getElementById("q2_progress");
+    const stem = document.getElementById("q2_stem");
+    const options = document.getElementById("q2_options");
+    const feedback = document.getElementById("q2_feedback");
+    const restartBtn = document.getElementById("q2_restart");
+    restartBtn.style.display = "none";
+
+    function render(){
+      const total = QUESTIONS.length;
+      const q = QUESTIONS[index];
+      progress.textContent = `[${index+1}/${total}]`;
+      stem.textContent = stemFrom(q.original);
+      options.innerHTML = "";
+      feedback.textContent = "";
+      q.choices.forEach((text, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = ` ${letters[i]}) ${text}`;
+        btn.style.display = "block";
+        btn.style.margin = ".25rem 0";
+        btn.onclick = () => select(i);
+        options.appendChild(btn);
+      });
+    }
+
+    function select(i){
+      const q = QUESTIONS[index];
+      if(i !== q.correctIndex){
+        // restart behavior
+        progress.textContent = "";
+        stem.textContent = "";
+        options.innerHTML = "";
+        feedback.textContent = "Incorrect. Restarting the quiz from the beginning...";
+        restartBtn.style.display = "inline-block";
+        restartBtn.onclick = () => runQuiz();
+        return;
+      }
+      score++;
+      feedback.textContent = "✔ Correct!";
+      index++;
+      if(index < QUESTIONS.length){
+        setTimeout(render, 400);
+      }else{
+        setTimeout(() => {
+          progress.textContent = "";
+          stem.textContent = "";
+          options.innerHTML = "";
+          feedback.innerHTML = `✅ Perfect! You answered all questions correctly.<br>Score: ${score}/${QUESTIONS.length}`;
+          try { localStorage.setItem("quiz2Score", JSON.stringify({score, total: QUESTIONS.length, ts: Date.now()})); } catch(e){}
+          restartBtn.style.display = "inline-block";
+          restartBtn.textContent = "Restart";
+          restartBtn.onclick = () => runQuiz();
+        }, 300);
+      }
+    }
+
+    render();
+  }
+
+  runQuiz();
+})();
+</script>

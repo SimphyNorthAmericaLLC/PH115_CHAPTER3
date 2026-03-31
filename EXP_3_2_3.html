@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EXP_3_2_3_interactive</title>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<style>
+  :root{
+    --bg:#1e1e1e;
+    --panel:#111;
+    --border:#444;
+    --text:#fff;
+    --ln:#00ff00;
+    --btn:#007acc;
+  }
+
+  body{
+    margin:0;
+    padding:18px;
+    background:var(--bg);
+    color:var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  h3{ margin:0 0 12px 0; font-weight:600; }
+
+  .editorWrap{
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+
+  .editor{
+    display:flex;
+    width:100%;
+  }
+
+  #lineNumbers{
+    user-select:none;
+    background:var(--panel);
+    color:var(--ln);
+    padding:12px 10px;
+    text-align:right;
+    white-space:pre;
+    overflow:hidden;
+    border-right:1px solid var(--border);
+    line-height:1.35;
+    font-size:14px;
+    min-width:46px;
+  }
+
+  #code{
+    flex:1;
+    background:var(--panel);
+    color:var(--text);
+    border:none;
+    outline:none;
+    padding:12px 12px;
+    resize:none;
+    overflow:auto;
+    white-space:pre;
+    line-height:1.35;
+    font-size:14px;
+  }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+    align-items:center;
+  }
+
+  button{
+    padding:8px 14px;
+    background:var(--btn);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  }
+
+  button.secondary{
+    background:#2a2a2a;
+    border:1px solid #555;
+  }
+
+  #status{
+    margin-left:auto;
+    opacity:0.9;
+    font-size:13px;
+  }
+
+  #output{
+    margin-top:12px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px;
+    min-height:70px;
+    white-space:pre-wrap;
+  }
+
+  #plotBox{
+    margin-top:12px;
+    background:#fff;
+    border-radius:10px;
+    padding:12px;
+    border:1px solid #d0d0d0;
+    display:none;
+  }
+
+  #plot{
+    width:100%;
+    height:780px;
+  }
+</style>
+</head>
+
+<body>
+
+<h3>EXP_3_2_3 — RC Charging Simulation (Interactive)</h3>
+
+<div class="editorWrap">
+  <div class="editor">
+    <pre id="lineNumbers"></pre>
+    <textarea id="code" spellcheck="false" wrap="off"></textarea>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="runBtn">Run</button>
+  <button class="secondary" id="resetBtn">Reset code</button>
+  <button class="secondary" id="savePngBtn">Save PNG</button>
+  <div id="status">Ready</div>
+</div>
+
+<div id="output"></div>
+
+<div id="plotBox">
+  <div id="plot"></div>
+</div>
+
+<script>
+const DEFAULT_CODE = `import numpy as np
+from scipy.integrate import solve_ivp
+
+# Parameters
+R = 1.0
+C = 1.0
+V0 = 5.0
+
+t_span = (0, 5)
+t_eval = np.linspace(0, 5, 1000)
+
+def dQ_dt(t, Q):
+    return (V0 / R) - (Q / (R * C))
+
+Q0 = 0
+
+solution = solve_ivp(dQ_dt, t_span, [Q0], t_eval=t_eval)
+
+Q_t = solution.y[0]
+V_t = Q_t / C
+I_t = np.gradient(Q_t, t_eval)
+
+print("Final charge =", Q_t[-1], "C")
+print("Final capacitor voltage =", V_t[-1], "V")
+print("Initial current =", I_t[0], "A")
+`;
+
+const codeEl = document.getElementById("code");
+const lnEl = document.getElementById("lineNumbers");
+const outputEl = document.getElementById("output");
+const statusEl = document.getElementById("status");
+const plotBox = document.getElementById("plotBox");
+const plotEl = document.getElementById("plot");
+
+const runBtn = document.getElementById("runBtn");
+const resetBtn = document.getElementById("resetBtn");
+const savePngBtn = document.getElementById("savePngBtn");
+
+const LINE_HEIGHT = 1.35;
+const FONT_SIZE = 14;
+const PAD_Y = 24;
+
+function setEditorHeightToCode(){
+  const lines = codeEl.value.split("\n").length;
+  const pxPerLine = FONT_SIZE * LINE_HEIGHT;
+  const desired = Math.ceil(lines * pxPerLine + PAD_Y);
+  const maxH = 520;
+  const minH = 220;
+  const h = Math.max(minH, Math.min(maxH, desired));
+  codeEl.style.height = h + "px";
+  lnEl.style.height = h + "px";
+}
+
+function updateLineNumbers(){
+  const lines = codeEl.value.split("\n").length;
+  let s = "";
+  for(let i=1;i<=lines;i++) s += i + "\n";
+  lnEl.textContent = s;
+  setEditorHeightToCode();
+}
+
+codeEl.value = DEFAULT_CODE;
+updateLineNumbers();
+
+codeEl.addEventListener("input", updateLineNumbers);
+codeEl.addEventListener("scroll", () => { lnEl.scrollTop = codeEl.scrollTop; });
+
+resetBtn.addEventListener("click", () => {
+  codeEl.value = DEFAULT_CODE;
+  updateLineNumbers();
+  outputEl.textContent = "";
+  plotBox.style.display = "none";
+  statusEl.textContent = "Ready";
+});
+
+let pyodideReadyPromise = null;
+function getPyodide(){
+  if(!pyodideReadyPromise){
+    statusEl.textContent = "Loading Pyodide...";
+    pyodideReadyPromise = loadPyodide();
+  }
+  return pyodideReadyPromise;
+}
+
+runBtn.addEventListener("click", async () => {
+  outputEl.textContent = "";
+  plotBox.style.display = "none";
+  statusEl.textContent = "Running...";
+
+  try{
+    const pyodide = await getPyodide();
+    await pyodide.loadPackage(["numpy","micropip"]);
+    await pyodide.runPythonAsync(`
+import micropip
+try:
+    import scipy
+except Exception:
+    await micropip.install("scipy")
+`);
+
+    await pyodide.runPythonAsync(`
+import sys, io, json
+import numpy as np
+sys.stdout = io.StringIO()
+`);
+
+    await pyodide.runPythonAsync(codeEl.value);
+
+    const out = await pyodide.runPythonAsync("sys.stdout.getvalue()");
+    outputEl.textContent = out || "";
+
+    await pyodide.runPythonAsync(`
+import json
+required = ["Q_t", "V_t", "I_t"]
+missing = [name for name in required if name not in globals()]
+if missing:
+    raise Exception("Your code must define: " + ", ".join(required))
+
+if "solution" in globals() and hasattr(solution, "t"):
+    t_data = np.asarray(solution.t, dtype=float).tolist()
+elif "t_eval" in globals():
+    t_data = np.asarray(t_eval, dtype=float).tolist()
+else:
+    raise Exception("Your code must define either solution.t or t_eval for the time axis.")
+
+plot_payload = json.dumps({
+    "t": t_data,
+    "Q_t": np.asarray(Q_t, dtype=float).tolist(),
+    "V_t": np.asarray(V_t, dtype=float).tolist(),
+    "I_t": np.asarray(I_t, dtype=float).tolist()
+})
+`);
+
+    const payloadText = await pyodide.runPythonAsync("plot_payload");
+    const payload = JSON.parse(payloadText);
+
+    const traces = [
+      {
+        x: payload.t,
+        y: payload.Q_t,
+        mode: "lines",
+        name: "Charge",
+        xaxis: "x",
+        yaxis: "y",
+        hovertemplate: "t = %{x:.4g} s<br>Q = %{y:.6g} C<extra></extra>"
+      },
+      {
+        x: payload.t,
+        y: payload.V_t,
+        mode: "lines",
+        name: "Potential",
+        xaxis: "x2",
+        yaxis: "y2",
+        hovertemplate: "t = %{x:.4g} s<br>V = %{y:.6g} V<extra></extra>"
+      },
+      {
+        x: payload.t,
+        y: payload.I_t,
+        mode: "lines",
+        name: "Current",
+        xaxis: "x3",
+        yaxis: "y3",
+        hovertemplate: "t = %{x:.4g} s<br>I = %{y:.6g} A<extra></extra>"
+      }
+    ];
+
+    const layout = {
+      paper_bgcolor: "white",
+      plot_bgcolor: "white",
+      font: {color: "black"},
+      margin: {l: 70, r: 20, t: 50, b: 50},
+      title: {text: "RC Charging Simulation"},
+      grid: {rows: 3, columns: 1, pattern: "independent"},
+      xaxis:  {title: "Time (s)", showgrid: true, zeroline: false},
+      yaxis:  {title: "Charge (C)", showgrid: true, zeroline: false},
+      xaxis2: {title: "Time (s)", showgrid: true, zeroline: false},
+      yaxis2: {title: "Potential (V)", showgrid: true, zeroline: false},
+      xaxis3: {title: "Time (s)", showgrid: true, zeroline: false},
+      yaxis3: {title: "Current (A)", showgrid: true, zeroline: false},
+      showlegend: false
+    };
+
+    Plotly.newPlot(plotEl, traces, layout, {responsive:true, displaylogo:false});
+    plotBox.style.display = "block";
+    statusEl.textContent = "Done";
+  } catch(err){
+    outputEl.textContent = String(err);
+    statusEl.textContent = "Error";
+  }
+});
+
+savePngBtn.addEventListener("click", async () => {
+  if(plotBox.style.display === "none") return;
+  await Plotly.downloadImage(plotEl, {
+    format: "png",
+    filename: "EXP_3_2_3_interactive_plot",
+    width: 1200,
+    height: 900,
+    scale: 2
+  });
+});
+</script>
+</body>
+</html>
