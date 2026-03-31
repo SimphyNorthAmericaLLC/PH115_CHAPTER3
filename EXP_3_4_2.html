@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EXP_3_4_2</title>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+<style>
+body{background:#1e1e1e;color:white;font-family:monospace;padding:15px;}
+.editor{display:flex;border:1px solid #444;height:340px;}
+#lineNumbers{background:#111;color:#00ff00;padding:10px 8px;margin:0;text-align:right;overflow:hidden;white-space:pre;}
+#code{flex:1;background:#111;color:white;border:none;padding:10px;resize:none;overflow:auto;white-space:pre;}
+button{margin-top:10px;margin-right:10px;padding:8px 14px;background:#007acc;color:white;border:none;cursor:pointer;}
+#plotBox{margin-top:15px;background:white;padding:10px;display:none;}
+#plotBox img{max-width:100%;margin-bottom:10px;}
+</style>
+</head>
+
+<body>
+
+<h3>EXP_3_4_2 — Capacitor Charge Redistribution</h3>
+
+<div class="editor">
+<pre id="lineNumbers"></pre>
+<textarea id="code" wrap="off">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+C1 = 100e-6
+C2 = 50e-6
+R = 1e2
+V0 = 10
+
+Q0 = C1 * V0
+
+t = np.linspace(0,0.05,1000)
+
+def circuit_odes(V,t,C1,C2,R):
+    V1,V2 = V
+    dV1_dt = -(V1-V2)/(R*C1)
+    dV2_dt = (V1-V2)/(R*C2)
+    return [dV1_dt,dV2_dt]
+
+V_initial=[V0,0]
+
+V = odeint(circuit_odes,V_initial,t,args=(C1,C2,R))
+
+V1=V[:,0]
+V2=V[:,1]
+
+Q1=C1*V1
+Q2=C2*V2
+
+plt.figure()
+plt.plot(t,Q1,label='Q1')
+plt.plot(t,Q2,label='Q2')
+plt.plot(t,Q1+Q2,'--',label='Q1+Q2')
+plt.axhline(y=Q0,color='red',linestyle=':',label='Q0')
+plt.xlabel('Time (s)')
+plt.ylabel('Charge (C)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure()
+plt.plot(t,V1,label='V1')
+plt.plot(t,V2,label='V2')
+plt.xlabel('Time (s)')
+plt.ylabel('Voltage (V)')
+plt.legend()
+plt.grid(True)
+plt.show()
+</textarea>
+</div>
+
+<button onclick="run()">Run Code</button>
+<button onclick="savePNG()">Save PNG</button>
+<button onclick="savePDF()">Save PDF</button>
+
+<div id="plotBox">
+<img id="plot1">
+<img id="plot2">
+</div>
+
+<script>
+const codeEl=document.getElementById("code");
+const lineNumbers=document.getElementById("lineNumbers");
+const plotBox=document.getElementById("plotBox");
+const plot1=document.getElementById("plot1");
+const plot2=document.getElementById("plot2");
+
+function updateLineNumbers(){
+    const lines=codeEl.value.split("\n").length;
+    let nums="";
+    for(let i=1;i<=lines;i++) nums+=i+"\n";
+    lineNumbers.textContent=nums;
+}
+
+codeEl.addEventListener("input", updateLineNumbers);
+codeEl.addEventListener("scroll", ()=> lineNumbers.scrollTop = codeEl.scrollTop);
+updateLineNumbers();
+
+let pyodideReady = loadPyodide();
+
+async function run(){
+    plotBox.style.display="none";
+
+    let pyodide = await pyodideReady;
+
+    await pyodide.loadPackage(["numpy","matplotlib","micropip"]);
+
+    await pyodide.runPythonAsync(`
+import micropip
+try:
+ import scipy
+except:
+ await micropip.install("scipy")
+`);
+
+    await pyodide.runPythonAsync(`
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+plt.close('all')
+from io import BytesIO
+import base64
+`);
+
+    await pyodide.runPythonAsync(codeEl.value);
+
+    let img1 = await pyodide.runPythonAsync(`
+buf=BytesIO()
+plt.figure(1).savefig(buf,format="png")
+buf.seek(0)
+base64.b64encode(buf.read()).decode()
+`);
+
+    let img2 = await pyodide.runPythonAsync(`
+buf=BytesIO()
+plt.figure(2).savefig(buf,format="png")
+buf.seek(0)
+base64.b64encode(buf.read()).decode()
+`);
+
+    plot1.src="data:image/png;base64,"+img1;
+    plot2.src="data:image/png;base64,"+img2;
+    plotBox.style.display="block";
+
+    await pyodide.runPythonAsync(`
+plt.figure(1).savefig("plot1.png")
+plt.figure(2).savefig("plot2.png")
+plt.figure(1).savefig("plot1.pdf")
+plt.figure(2).savefig("plot2.pdf")
+`);
+}
+
+async function savePNG(){
+    let pyodide = await pyodideReady;
+    let f1 = pyodide.FS.readFile("plot1.png");
+    let f2 = pyodide.FS.readFile("plot2.png");
+
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([f1],{type:"image/png"}));
+    a.download="plot1.png";
+    a.click();
+
+    let b=document.createElement("a");
+    b.href=URL.createObjectURL(new Blob([f2],{type:"image/png"}));
+    b.download="plot2.png";
+    b.click();
+}
+
+async function savePDF(){
+    let pyodide = await pyodideReady;
+    let f1 = pyodide.FS.readFile("plot1.pdf");
+    let f2 = pyodide.FS.readFile("plot2.pdf");
+
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([f1],{type:"application/pdf"}));
+    a.download="plot1.pdf";
+    a.click();
+
+    let b=document.createElement("a");
+    b.href=URL.createObjectURL(new Blob([f2],{type:"application/pdf"}));
+    b.download="plot2.pdf";
+    b.click();
+}
+</script>
+
+</body>
+</html>
