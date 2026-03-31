@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>EXP_3_2_3b</title>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+<style>
+body {
+    background-color: #1e1e1e;
+    color: white;
+    font-family: monospace;
+    padding: 15px;
+}
+
+.editor {
+    display: flex;
+    border: 1px solid #444;
+    height: 340px;
+}
+
+#lineNumbers {
+    background: #111;
+    color: #00ff00;
+    padding: 10px 8px;
+    margin: 0;
+    text-align: right;
+    overflow: hidden;
+    white-space: pre;
+}
+
+#code {
+    flex: 1;
+    background: #111;
+    color: white;
+    border: none;
+    padding: 10px;
+    resize: none;
+    overflow: auto;
+    white-space: pre;
+}
+
+button {
+    margin-top: 10px;
+    padding: 8px 14px;
+    background: #007acc;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#output {
+    background: #111;
+    padding: 10px;
+    margin-top: 10px;
+    min-height: 80px;
+    white-space: pre-wrap;
+}
+
+#plot {
+    margin-top: 15px;
+    background: white;
+    padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h3>EXP_3_2_3b — Falling Object with Drag</h3>
+
+<div class="editor">
+<pre id="lineNumbers"></pre>
+<textarea id="code" wrap="off">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
+g = 9.81
+m = 70.0
+b = 12.5
+
+t_span = (0, 15)
+t_eval = np.linspace(0, 15, 1000)
+
+def dv_dt(t, v):
+    return g - (b / m) * v
+
+v0 = [0]
+
+solution = solve_ivp(dv_dt, t_span, v0, t_eval=t_eval)
+
+v_t = solution.y[0]
+
+v_term = m * g / b
+
+plt.figure(figsize=(10,6))
+plt.plot(solution.t, v_t)
+plt.axhline(y=v_term, linestyle="--")
+plt.xlabel("Time (s)")
+plt.ylabel("Velocity (m/s)")
+plt.title("Velocity of a Falling Object with Air Resistance")
+plt.grid(True)
+plt.show()
+</textarea>
+</div>
+
+<button onclick="run()">Run</button>
+
+<div id="output"></div>
+<div id="plot"></div>
+
+<script>
+let pyodideReady = loadPyodide();
+let pyodide;
+
+const codeEl = document.getElementById("code");
+const lineNumbers = document.getElementById("lineNumbers");
+
+function updateLineNumbers() {
+    const lines = codeEl.value.split("\n").length;
+    let nums = "";
+    for (let i = 1; i <= lines; i++) nums += i + "\n";
+    lineNumbers.textContent = nums;
+}
+
+codeEl.addEventListener("input", updateLineNumbers);
+codeEl.addEventListener("scroll", () => lineNumbers.scrollTop = codeEl.scrollTop);
+updateLineNumbers();
+
+async function run() {
+    pyodide = await pyodideReady;
+    document.getElementById("output").innerText = "Running...";
+    document.getElementById("plot").innerHTML = "";
+
+    await pyodide.loadPackage(["numpy", "matplotlib", "micropip"]);
+
+    try {
+        await pyodide.runPythonAsync(`
+import micropip
+try:
+    import scipy
+except:
+    await micropip.install("scipy")
+`);
+
+        await pyodide.runPythonAsync(`
+import sys, io, base64
+from io import BytesIO
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+sys.stdout = io.StringIO()
+`);
+
+        await pyodide.runPythonAsync(codeEl.value);
+
+        let out = await pyodide.runPythonAsync("sys.stdout.getvalue()");
+        document.getElementById("output").innerText = out;
+
+        const figCount = await pyodide.runPythonAsync("len(plt.get_fignums())");
+        if (figCount > 0) {
+            const img = await pyodide.runPythonAsync(`
+buf = BytesIO()
+plt.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+buf.seek(0)
+base64.b64encode(buf.read()).decode("utf-8")
+`);
+            document.getElementById("plot").innerHTML =
+                "<img id='plotImage' src='data:image/png;base64," + img + "'/>";
+        }
+    } catch(err) {
+        document.getElementById("output").innerText = err;
+    }
+}
+</script>
+
+</body>
+</html>
