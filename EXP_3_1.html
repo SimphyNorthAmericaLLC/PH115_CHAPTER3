@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dielectric Polarization in a Capacitor</title>
+<style>
+  :root{
+    --bg:#0f172a;
+    --panel:#111827;
+    --panel2:#1f2937;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+    --accent:#60a5fa;
+    --accent2:#34d399;
+    --plate:#cbd5e1;
+    --field:#fbbf24;
+    --pos:#ef4444;
+    --neg:#3b82f6;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(180deg, #0b1020, #111827);
+    color: var(--text);
+  }
+  .wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1{
+    margin: 0 0 8px 0;
+    font-size: 1.6rem;
+  }
+  .sub{
+    color: var(--muted);
+    margin-bottom: 18px;
+    line-height: 1.45;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap: 18px;
+  }
+  .card{
+    background: rgba(17,24,39,0.92);
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .controls h2, .notes h2{
+    margin-top:0;
+    font-size:1.05rem;
+  }
+  .control{
+    margin-bottom: 14px;
+  }
+  .control label{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    font-size:0.95rem;
+    margin-bottom:6px;
+  }
+  .control small{
+    color: var(--muted);
+  }
+  input[type="range"]{
+    width:100%;
+    accent-color: var(--accent);
+  }
+  .btnrow{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin: 8px 0 14px;
+  }
+  button{
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor:pointer;
+    font-size:0.95rem;
+  }
+  button:hover{
+    background:#273449;
+  }
+  .toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin: 12px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+  }
+  canvas{
+    width:100%;
+    height:auto;
+    display:block;
+    background: radial-gradient(circle at center, #0b1220 0%, #08101c 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(148,163,184,0.14);
+  }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .dot{
+    display:inline-block;
+    width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;
+  }
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+    margin-top: 12px;
+  }
+  .stat{
+    background: rgba(255,255,255,0.03);
+    padding:10px 12px;
+    border-radius:12px;
+    min-height:72px;
+  }
+  .stat .k{
+    color: var(--muted);
+    font-size:0.85rem;
+    margin-bottom:4px;
+  }
+  .stat .v{
+    font-size:1.1rem;
+    font-weight:bold;
+  }
+  .notes p{
+    line-height:1.5;
+    margin: 10px 0;
+  }
+  .eq{
+    font-family: "Times New Roman", serif;
+    background: rgba(255,255,255,0.03);
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin: 10px 0;
+  }
+  @media (max-width: 920px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Dielectric Polarization Inside a Capacitor</h1>
+    <div class="sub">
+      Adjust the electric field and the dielectric response to visualize how molecules inside a dielectric rotate and polarize between capacitor plates.
+      The red side represents the slightly positive end of a polarized molecule and the blue side the slightly negative end.
+    </div>
+
+    <div class="grid">
+      <div class="card controls">
+        <h2>Controls</h2>
+
+        <div class="control">
+          <label><span>Electric field strength</span><strong id="fieldVal">0.70</strong></label>
+          <input id="fieldStrength" type="range" min="0" max="1" step="0.01" value="0.70">
+          <small>Higher field gives stronger alignment.</small>
+        </div>
+
+        <div class="control">
+          <label><span>Number of molecules</span><strong id="countVal">28</strong></label>
+          <input id="moleculeCount" type="range" min="8" max="60" step="1" value="28">
+          <small>More molecules make the bulk polarization easier to see.</small>
+        </div>
+
+        <div class="control">
+          <label><span>Thermal agitation</span><strong id="tempVal">0.35</strong></label>
+          <input id="thermal" type="range" min="0" max="1" step="0.01" value="0.35">
+          <small>Higher agitation fights alignment.</small>
+        </div>
+
+        <div class="control">
+          <label><span>Polarizability</span><strong id="polarVal">0.85</strong></label>
+          <input id="polarizability" type="range" min="0.1" max="1.5" step="0.01" value="0.85">
+          <small>Controls induced dipole strength.</small>
+        </div>
+
+        <div class="btnrow">
+          <button id="toggleField">Turn field off</button>
+          <button id="randomize">Randomize molecules</button>
+          <button id="pauseBtn">Pause</button>
+        </div>
+
+        <div class="toggle">
+          <span>Show electric field arrows</span>
+          <input id="showField" type="checkbox" checked>
+        </div>
+
+        <div class="toggle">
+          <span>Show induced dipole arrows</span>
+          <input id="showDipoles" type="checkbox" checked>
+        </div>
+
+        <div class="toggle">
+          <span>Fill capacitor with dielectric</span>
+          <input id="fillToggle" type="checkbox" checked>
+        </div>
+      </div>
+
+      <div class="card">
+        <canvas id="simCanvas" width="820" height="520"></canvas>
+
+        <div class="legend">
+          <div><span class="dot" style="background:#ef4444"></span>Slightly positive side</div>
+          <div><span class="dot" style="background:#3b82f6"></span>Slightly negative side</div>
+          <div><span class="dot" style="background:#fbbf24"></span>Electric field</div>
+          <div><span class="dot" style="background:#34d399"></span>Dipole moment</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="k">Average alignment</div>
+            <div class="v" id="alignStat">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="k">Average dipole size</div>
+            <div class="v" id="dipoleStat">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="k">Effective polarization</div>
+            <div class="v" id="polStat">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card notes" style="margin-top:18px">
+      <h2>What this illustrates</h2>
+      <p>Without an external electric field, molecular dipoles are randomly oriented, so the material has little or no net polarization.</p>
+      <p>When the dielectric is placed between capacitor plates, the electric field exerts a torque that tends to rotate dipoles into alignment. Nonpolar molecules can also become polarized by a slight displacement of positive and negative charge centers.</p>
+      <div class="eq">Polarization increases when field strength and polarizability increase, and it decreases when thermal agitation is large.</div>
+      <p>This animation is conceptual rather than microscopic: it is meant to show <strong>orientation + induced dipole formation</strong> inside the dielectric.</p>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const fieldStrengthEl = document.getElementById('fieldStrength');
+  const moleculeCountEl = document.getElementById('moleculeCount');
+  const thermalEl = document.getElementById('thermal');
+  const polarizabilityEl = document.getElementById('polarizability');
+
+  const fieldVal = document.getElementById('fieldVal');
+  const countVal = document.getElementById('countVal');
+  const tempVal = document.getElementById('tempVal');
+  const polarVal = document.getElementById('polarVal');
+
+  const toggleFieldBtn = document.getElementById('toggleField');
+  const randomizeBtn = document.getElementById('randomize');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const showFieldEl = document.getElementById('showField');
+  const showDipolesEl = document.getElementById('showDipoles');
+  const fillToggleEl = document.getElementById('fillToggle');
+
+  const alignStat = document.getElementById('alignStat');
+  const dipoleStat = document.getElementById('dipoleStat');
+  const polStat = document.getElementById('polStat');
+
+  const plateLeft = 160;
+  const plateRight = 660;
+  const topY = 70;
+  const bottomY = 450;
+  const dielectricPad = 28;
+
+  let running = true;
+  let fieldOn = true;
+  let molecules = [];
+
+  function rand(min, max){ return min + Math.random() * (max - min); }
+
+  function createMolecule() {
+    const x = rand(plateLeft + dielectricPad, plateRight - dielectricPad);
+    const y = rand(topY + dielectricPad, bottomY - dielectricPad);
+    return {
+      x: x, y: y,
+      angle: rand(0, Math.PI * 2),
+      omega: rand(-0.02, 0.02),
+      baseRadius: rand(11, 15),
+      induced: 0
+    };
+  }
+
+  function rebuildMolecules() {
+    molecules = [];
+    const count = parseInt(moleculeCountEl.value, 10);
+    for(let i = 0; i < count; i++) molecules.push(createMolecule());
+  }
+
+  function randomizeMolecules() {
+    molecules.forEach(m => {
+      m.angle = rand(0, Math.PI * 2);
+      m.omega = rand(-0.03, 0.03);
+    });
+  }
+
+  function updateReadouts() {
+    fieldVal.textContent = Number(fieldStrengthEl.value).toFixed(2);
+    countVal.textContent = moleculeCountEl.value;
+    tempVal.textContent = Number(thermalEl.value).toFixed(2);
+    polarVal.textContent = Number(polarizabilityEl.value).toFixed(2);
+  }
+
+  function drawPlate(x, sign) {
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(x - 12, topY, 24, bottomY - topY);
+    ctx.fillStyle = '#0f172a';
+    for (let y = topY + 18; y < bottomY - 8; y += 32) {
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e5e7eb';
+      ctx.font = '18px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(sign, x, y + 1);
+      ctx.fillStyle = '#0f172a';
+    }
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, width, head) {
+    width = width || 2;
+    head = head || 8;
+    const dx = x2 - x1, dy = y2 - y1;
+    const ang = Math.atan2(dy, dx);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(ang - Math.PI/6), y2 - head * Math.sin(ang - Math.PI/6));
+    ctx.lineTo(x2 - head * Math.cos(ang + Math.PI/6), y2 - head * Math.sin(ang + Math.PI/6));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawFieldArrows() {
+    if (!showFieldEl.checked || !fieldOn) return;
+    const rows = 7;
+    const cols = 7;
+    for(let j=0;j<rows;j++){
+      const y = topY + 40 + j * ((bottomY - topY - 80)/(rows-1));
+      for(let i=0;i<cols;i++){
+        const x1 = plateLeft + 35 + i * ((plateRight - plateLeft - 90)/(cols-1));
+        const x2 = x1 + 45;
+        drawArrow(x1, y, x2, y, 'rgba(251,191,36,0.9)', 2, 7);
+      }
+    }
+  }
+
+  function drawDielectricRegion() {
+    if (!fillToggleEl.checked) return;
+    ctx.fillStyle = 'rgba(52, 211, 153, 0.08)';
+    ctx.fillRect(plateLeft + 16, topY, (plateRight - plateLeft - 32), bottomY - topY);
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.25)';
+    ctx.setLineDash([8,6]);
+    ctx.strokeRect(plateLeft + 16, topY, (plateRight - plateLeft - 32), bottomY - topY);
+    ctx.setLineDash([]);
+  }
+
+  function drawMolecule(m) {
+    const r = m.baseRadius;
+    const dipoleScale = 8 + 16 * m.induced;
+
+    const dx = Math.cos(m.angle);
+    const dy = Math.sin(m.angle);
+
+    const cxPos = m.x + dx * r * 0.9;
+    const cyPos = m.y + dy * r * 0.9;
+    const cxNeg = m.x - dx * r * 0.9;
+    const cyNeg = m.y - dy * r * 0.9;
+
+    ctx.strokeStyle = 'rgba(226,232,240,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cxNeg, cyNeg);
+    ctx.lineTo(cxPos, cyPos);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(cxPos, cyPos, r * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.arc(cxNeg, cyNeg, r * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (showDipolesEl.checked) {
+      drawArrow(
+        m.x - dx * dipoleScale * 0.5,
+        m.y - dy * dipoleScale * 0.5,
+        m.x + dx * dipoleScale * 0.5,
+        m.y + dy * dipoleScale * 0.5,
+        'rgba(52, 211, 153, 0.95)',
+        2,
+        7
+      );
+    }
+  }
+
+  function updatePhysics() {
+    const E = fieldOn ? Number(fieldStrengthEl.value) : 0;
+    const thermal = Number(thermalEl.value);
+    const polar = Number(polarizabilityEl.value);
+
+    molecules.forEach(m => {
+      const target = 0;
+      let diff = target - m.angle;
+      while (diff > Math.PI) diff -= 2*Math.PI;
+      while (diff < -Math.PI) diff += 2*Math.PI;
+
+      const torque = E * polar * 0.05 * Math.sin(diff);
+      const noise = (Math.random() - 0.5) * (0.03 + thermal * 0.08);
+      const damping = 0.92 - 0.22 * Math.min(thermal, 0.9);
+
+      m.omega += torque + noise;
+      m.omega *= damping;
+      m.angle += m.omega;
+
+      m.induced += ((E * polar) - m.induced) * 0.08;
+      m.induced = Math.max(0, Math.min(1.6, m.induced));
+
+      m.x += (Math.random() - 0.5) * 0.22 * (0.25 + thermal);
+      m.y += (Math.random() - 0.5) * 0.22 * (0.25 + thermal);
+
+      m.x = Math.max(plateLeft + dielectricPad, Math.min(plateRight - dielectricPad, m.x));
+      m.y = Math.max(topY + dielectricPad, Math.min(bottomY - dielectricPad, m.y));
+    });
+  }
+
+  function updateStats() {
+    if (!molecules.length) return;
+    let align = 0;
+    let dip = 0;
+    molecules.forEach(m => {
+      align += Math.cos(m.angle);
+      dip += m.induced;
+    });
+    align /= molecules.length;
+    dip /= molecules.length;
+    const P = align * dip;
+
+    alignStat.textContent = align.toFixed(2);
+    dipoleStat.textContent = dip.toFixed(2);
+    polStat.textContent = P.toFixed(2);
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = 'rgba(148,163,184,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(80, 40, 660, 440);
+
+    drawDielectricRegion();
+    drawPlate(plateLeft, '+');
+    drawPlate(plateRight, '-');
+    drawFieldArrows();
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Positive plate', plateLeft, 32);
+    ctx.fillText('Negative plate', plateRight, 32);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Electric field direction', (plateLeft + plateRight)/2, 490);
+
+    if (showFieldEl.checked && fieldOn) {
+      drawArrow(330, 506, 490, 506, 'rgba(251,191,36,0.95)', 3, 10);
+    }
+
+    molecules.forEach(drawMolecule);
+    updateStats();
+  }
+
+  function animate() {
+    if (running) updatePhysics();
+    drawScene();
+    requestAnimationFrame(animate);
+  }
+
+  fieldStrengthEl.addEventListener('input', updateReadouts);
+  moleculeCountEl.addEventListener('input', () => {
+    updateReadouts();
+    rebuildMolecules();
+  });
+  thermalEl.addEventListener('input', updateReadouts);
+  polarizabilityEl.addEventListener('input', updateReadouts);
+
+  toggleFieldBtn.addEventListener('click', () => {
+    fieldOn = !fieldOn;
+    toggleFieldBtn.textContent = fieldOn ? 'Turn field off' : 'Turn field on';
+  });
+
+  randomizeBtn.addEventListener('click', randomizeMolecules);
+
+  pauseBtn.addEventListener('click', () => {
+    running = !running;
+    pauseBtn.textContent = running ? 'Pause' : 'Resume';
+  });
+
+  fillToggleEl.addEventListener('change', () => {
+    if (!fillToggleEl.checked) {
+      molecules = [];
+    } else {
+      rebuildMolecules();
+    }
+  });
+
+  updateReadouts();
+  rebuildMolecules();
+  animate();
+})();
+</script>
+</body>
+</html>
